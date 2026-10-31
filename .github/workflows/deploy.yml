@@ -11,15 +11,13 @@ permissions:
   packages: write
 
 jobs:
-  frontend:
-    name: Build frontend release artifact
+  validate-and-publish:
+    name: Validate and publish release artifacts
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: merzy-coffee
     steps:
       - uses: actions/checkout@v4
 
+      # Validate the frontend before publishing any release artifact.
       - name: Use Node.js 22.x
         uses: actions/setup-node@v4
         with:
@@ -33,35 +31,27 @@ jobs:
         with:
           chrome-version: stable
 
-      - name: Install dependencies
+      - name: Install frontend dependencies
+        working-directory: merzy-coffee
         run: npm ci
 
-      - name: Lint
+      - name: Frontend lint
+        working-directory: merzy-coffee
         run: npm run lint
 
-      - name: Unit tests
+      - name: Frontend unit tests
+        working-directory: merzy-coffee
         run: npm test -- --watch=false --browsers=ChromeHeadlessNoSandbox
         env:
           CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
 
-      - name: Production build
+      - name: Frontend production build
+        working-directory: merzy-coffee
         run: npm run build -- --configuration production
         env:
           NODE_OPTIONS: "--max-old-space-size=4096"
 
-      - name: Upload release artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: production-dist-${{ github.sha }}
-          path: merzy-coffee/dist/merzy/browser/
-          retention-days: 30
-
-  backend:
-    name: Build & publish API image (GHCR)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
+      # Validate and publish the backend only after all frontend checks pass.
       - name: Setup .NET 8 SDK
         uses: actions/setup-dotnet@v4
         with:
@@ -70,13 +60,24 @@ jobs:
       - name: Restore backend
         run: dotnet restore api-server/MERZY.Backend.sln
 
-      - name: Backend unit tests
-        run: dotnet test api-server/tests/MERZY.UnitTests/MERZY.UnitTests.csproj -c Release --no-restore --verbosity normal
+      - name: Backend Release build
+        run: dotnet build api-server/MERZY.Backend.sln -c Release --no-restore
 
-      - name: Publish API (artifact for a separately configured host deployment)
+      - name: Backend unit tests
+        run: dotnet test api-server/tests/MERZY.UnitTests/MERZY.UnitTests.csproj -c Release --no-build --no-restore --verbosity normal
+
+      - name: Publish API
         run: dotnet publish api-server/src/MERZY.Api/MERZY.Api.csproj -c Release -o api-publish --no-restore --nologo
 
-      - name: Upload publish artifact
+      # No release artifact or image is published until every required check above passes.
+      - name: Upload frontend release artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-dist-${{ github.sha }}
+          path: merzy-coffee/dist/merzy/browser/
+          retention-days: 30
+
+      - name: Upload API publish artifact
         uses: actions/upload-artifact@v4
         with:
           name: api-publish-${{ github.sha }}
@@ -102,7 +103,7 @@ jobs:
             type=ref,event=branch
             type=sha
 
-      - name: Build & push image
+      - name: Build & push API image
         uses: docker/build-push-action@v6
         with:
           context: ./api-server
