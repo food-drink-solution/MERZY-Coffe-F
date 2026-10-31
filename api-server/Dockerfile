@@ -15,14 +15,13 @@ COPY ["src/MERZY.Application/MERZY.Application.csproj", "src/MERZY.Application/"
 COPY ["src/MERZY.Infrastructure/MERZY.Infrastructure.csproj", "src/MERZY.Infrastructure/"]
 COPY ["src/MERZY.Api/MERZY.Api.csproj", "src/MERZY.Api/"]
 COPY ["tests/MERZY.UnitTests/MERZY.UnitTests.csproj", "tests/MERZY.UnitTests/"]
-RUN dotnet restore "MERZY.Backend.sln"
+RUN dotnet restore "MERZY.Backend.sln" && dotnet nuget locals all --clear
 
 # Copy the rest of the source and publish
 COPY . .
 RUN dotnet publish "src/MERZY.Api/MERZY.Api.csproj" \
       -c Release \
       -o /app/publish \
-      --no-restore \
       /p:UseAppHost=false
 
 # ---- Runtime stage ----
