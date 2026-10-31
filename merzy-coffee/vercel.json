@@ -1,0 +1,11 @@
+{
+  "buildCommand": "npm ci && npx ng build --configuration production",
+  "outputDirectory": "dist/merzy/browser",
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
