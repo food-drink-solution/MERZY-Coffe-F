@@ -16,15 +16,16 @@ brand: **true black ink, electric violet accents, Sora + Outfit typography**.
 ├── docs/                     # Project documentation markdown
 │   ├── INDEX.md              # Start here for all docs
 │   ├── ARCHITECTURE.md
-│   ├── SETUP.md
-│   ├── QUICK_START.md
+│   ├── DESIGN_SYSTEM.md
+│   ├── DEPLOYMENT.md
+│   ├── INSTALLATION.md
+│   ├── ROADMAP.md
 │   ├── scraped-data.md       # Public data collected from Instagram/Facebook/Talabat
 │   └── scrapers/             # Documentation for data collection scripts
-├── frontend/
-│   └── MERZY-Coffe/          # The Angular 18 application (all frontend code)
-│       ├── public/           # Static assets + real scraped Instagram photos
-│       ├── src/              # Angular app with centralized design tokens
-│       └── package.json
+├── merzy-coffee/            # The Angular 18 application (all frontend code)
+│   ├── public/              # Static assets + real scraped Instagram photos
+│   ├── src/                 # Angular app with centralized design tokens
+│   └── package.json
 ├── scripts/                  # Data collection / processing utilities
 ├── AGENTS.md                 # Repository guide for coding agents
 └── README.md                 # This file
@@ -33,7 +34,7 @@ brand: **true black ink, electric violet accents, Sora + Outfit typography**.
 ## Quick start — frontend
 
 ```bash
-cd frontend/MERZY-Coffe
+cd merzy-coffee
 npm install
 npm start          # dev server on http://localhost:4200
 ```
@@ -44,7 +45,7 @@ execution policy). A convenient local port: `npx.cmd ng serve --port 4321`.
 Production build:
 
 ```bash
-npx.cmd ng build   # output in frontend/MERZY-Coffe/dist/merzy
+npx.cmd ng build   # output in merzy-coffee/dist/merzy
 ```
 
 ## Quick start — api-server
@@ -64,13 +65,13 @@ All docs live in [`docs/`](./docs) — start with [`docs/INDEX.md`](./docs/INDEX
 Key documents:
 
 - [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — layers, models, services
-- [`docs/SETUP.md`](./docs/SETUP.md) — environment setup
+- [`docs/INSTALLATION.md`](./docs/INSTALLATION.md) — environment setup
 - [`docs/scraped-data.md`](./docs/scraped-data.md) — real MERZY data + imagery sources
 
 ## Design system
 
 The frontend uses a single centralized token schema in
-`frontend/MERZY-Coffe/src/styles.css`:
+`merzy-coffee/src/styles.css`:
 
 | Token | Value | Meaning |
 |---|---|---|
@@ -87,5 +88,5 @@ Fonts: **Sora** (display) + **Outfit** (body), from Google Fonts.
 
 All business data and imagery shown on the site come from MERZY's public
 profiles (Instagram `@merzy.eg`, Facebook page, Talabat listing) and are stored
-locally in `frontend/MERZY-Coffe/public/scraped/instagram/`.
+locally in `merzy-coffee/public/scraped/instagram/`.
 The color palette and typography were extracted from the real brand assets.

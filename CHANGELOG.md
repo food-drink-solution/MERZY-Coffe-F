@@ -133,7 +133,7 @@ To stay updated with the latest changes:
 2. **Install dependencies**
    ```bash
    npm install
-   cd frontend/MERZY-Coffe && npm install
+   cd merzy-coffee && npm install
    cd ../api-server && npm install
    ```
 
