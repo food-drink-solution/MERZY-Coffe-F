@@ -105,7 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 1.0.0
 - **Release Date**: October 31, 2026
-- **Status**: Production Ready
+- **Status**: MVP; production readiness and live deployment remain unverified
 - **Features**: MVP with complete scraper system
 - **Code Statistics**:
   - 2500+ lines of implementation
