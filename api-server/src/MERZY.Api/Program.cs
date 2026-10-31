@@ -66,7 +66,8 @@ app.UseSwaggerUI(options =>
 
 app.MapHealthChecks("/healthz");
 
-// CORS must run before endpoint mapping so browser preflight requests are handled.
+// Explicit routing keeps endpoint-aware rate limiting in the correct middleware position.
+app.UseRouting();
 app.UseCors("MerzyWeb");
 app.UseRateLimiter();
 app.MapControllers();
