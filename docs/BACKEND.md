@@ -1,73 +1,52 @@
-# BACKEND.md — MERZY API architecture reference
+# MERZY Backend Guide
 
-Backend: **ASP.NET Core 8 + EF Core 8 + SQL Server**, organized with Clean
-Architecture. No Node.js remains in the repo; the previous Express server was
-fully removed.
+## Stack and architecture
 
-## Layer map
+MERZY's backend is ASP.NET Core 8 with EF Core 8 and SQL Server, organized into Clean Architecture layers:
 
-```
-MERZY.Domain            → entities, enums, base types        (zero packages)
-MERZY.Application       → services/use cases, DTOs, repo     (Microsoft.Extensions.
-                          interfaces                           DependencyInjection.Abstractions 8.0.2)
-MERZY.Infrastructure    → EF Core SqlServer 8.0.11,          (+ EF Tools 8.0.11, private)
-                          configurations, repositories,
-                          Migrations/
-MERZY.Api               → controllers, Program.cs, Swagger   (Swashbuckle 6.6.2,
-                                                               EF Design 8.0.11 for
-                                                               `dotnet ef` commands)
-MERZY.UnitTests         → xUnit 2.9.2, in-memory fakes       (no EF, no SQL needed)
-```
+- `MERZY.Domain`: entities and domain enums
+- `MERZY.Application`: use cases, DTOs, interfaces
+- `MERZY.Infrastructure`: EF Core persistence, repositories and migrations
+- `MERZY.Api`: HTTP endpoints, Swagger, CORS and health probes
 
-Dependency rule: `Api → Application ← Infrastructure`, `Application → Domain`.
-Domain knows nothing about EF or ASP.NET; migrations live in Infrastructure
-(`MigrationsAssembly` is explicitly set in `AddInfrastructure`).
+The Angular app currently has local/mock menu and order services. It is not yet an end-to-end API-backed checkout.
 
-## Key files
+## Local development
 
-| Concern | File |
-|---|---|
-| Composition root | `src/MERZY.Api/Program.cs` (CORS `MerzyWeb`, Swagger all envs, MigrateAsync) |
-| EF context | `src/MERZY.Infrastructure/Persistence/MerzyDbContext.cs` |
-| Entity configs + seed | `.../Persistence/Configurations/*.cs` (4 deterministic menu GUIDs) |
-| Order state machine | `src/MERZY.Application/Services/OrderService.cs` |
-| 404 typing | `.../Services/OrderNotFoundException.cs` → controller maps to 404 |
-| Solutions/props | `MERZY.Backend.sln`, `Directory.Build.props` (net8.0, Nullable, ImplicitUsings) |
-
-## Production settings (as deployed)
-
-| Setting | Value |
-|---|---|
-| Host | `http://merzy-coffee-api.runasp.net` (databaseasp.net SQL behind it) |
-| DB config | `appsettings.Production.json` (or `ConnectionStrings__DefaultConnection` env var — precedence higher) |
-| CORS | `https://merzy-coffe.vercel.app` + `localhost:4321` only |
-| Swagger | `/swagger` live in production (deployment verification cockpit) |
-| Migrations | applied automatically at startup (`db.Database.MigrateAsync()` try/catch) |
-
-## Migration workflow
+From the repository root:
 
 ```bash
-# after entity/config changes
-dotnet ef migrations add <Name> -p src/MERZY.Infrastructure -s src/MERZY.Api
-
-# apply to a specific server from anywhere
-$env:ConnectionStrings__DefaultConnection="<target>"
-dotnet ef database update -p src/MERZY.Infrastructure -s src/MERZY.Api
+cd api-server
+dotnet restore MERZY.Backend.sln
+dotnet build MERZY.Backend.sln -c Release
+dotnet test tests/MERZY.UnitTests/MERZY.UnitTests.csproj -c Release
+dotnet run --project src/MERZY.Api
 ```
 
-InitialCreate applied to the hosted server: tables `MenuItems`, `Orders`,
-`OrderItems` + `__EFMigrationsHistory`, seeded with 4 items (Dirty Espresso 60,
-Flat White 55, London Cake 50, Club Sandwich 70 EGP).
+Set `ConnectionStrings__DefaultConnection` in the shell or local secret store before using database endpoints. No production connection string is tracked in configuration. Health endpoints can remain available when the database is unavailable, but menu/order endpoints require SQL Server.
 
-## Pipeline wiring
+## HTTP endpoints
 
-- `backend.yml` — restore/build/test on .NET 8 + live smoke (healthz, /api/health)
-- `deploy.yml` — Release publish artifact `api-publish-{sha}` for runasp.net
-  upload + GHCR image `ghcr.io/food-drink-solution/MERZY-Coffe-F/api-server`
+| Method | Route | Notes |
+|---|---|---|
+| GET | `/healthz` | Liveness probe |
+| GET | `/api/health` | Health response |
+| GET | `/api/menu` | Database-backed menu |
+| POST | `/api/orders` | Validates item IDs and quantities; calculates totals server-side |
+| GET | `/api/orders/{id}` | Reads persisted order |
+| PATCH | `/api/orders/{id}/status` | Disabled with HTTP 501 until staff authentication/authorization is implemented |
 
-## Security note
+Order creation has a 32 KiB request limit and a per-process fixed-window rate limit. Configure the CORS allowlist with `MERZY_CORS_ORIGINS` (comma-separated exact origins). These safeguards do not replace authentication, monitoring, or a full production threat model.
 
-The current DB password is committed in `appsettings.Production.json` (repo is
-public). Plan: rotate it on databaseasp.net and move to the env-var override in
-the hosting panel; scrub the file before making the repo public-facing
-documentation-only.
+## Production configuration
+
+Set these in the target hosting provider's environment/secret store:
+
+- `ConnectionStrings__DefaultConnection`: SQL Server connection string
+- `MERZY_CORS_ORIGINS`: exact trusted frontend origins, comma-separated
+
+Rotate any database password that has ever been committed. Removing it from the current source does not revoke the credential or erase Git history.
+
+## CI/CD boundary
+
+GitHub Actions validates frontend lint/tests/build and backend build/unit tests/smoke tests. The release workflow uploads the frontend build, uploads a .NET publish artifact, and publishes the backend container to GHCR. It does not itself deploy to Vercel or runasp.net/IIS. A production release is complete only after the hosting provider reports success and live HTTP checks pass.
