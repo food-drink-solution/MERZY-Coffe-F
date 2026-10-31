@@ -98,6 +98,34 @@ public sealed class OrderServiceTests
     }
 
     [Fact]
+    public async Task Rejects_quantity_above_maximum()
+    {
+        var service = CreateService();
+        var request = new PlaceOrderRequest(
+            [new PlaceOrderItemRequest(InMemoryMenuItemRepository.Espresso.Id, 101)]);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.PlaceOrderAsync(request, CancellationToken.None));
+
+        Assert.Contains("between 1 and 100", ex.Message);
+    }
+
+    [Fact]
+    public async Task Rejects_orders_with_too_many_lines()
+    {
+        var service = CreateService();
+        var items = Enumerable.Range(0, 51)
+            .Select(_ => new PlaceOrderItemRequest(InMemoryMenuItemRepository.Espresso.Id, 1))
+            .ToList();
+        var request = new PlaceOrderRequest(items);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => service.PlaceOrderAsync(request, CancellationToken.None));
+
+        Assert.Contains("more than 50 line items", ex.Message);
+    }
+
+    [Fact]
     public async Task Unknown_order_id_returns_OrderNotFoundException()
     {
         var service = CreateService();
