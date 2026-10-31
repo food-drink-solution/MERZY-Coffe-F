@@ -6,7 +6,7 @@ on:
     paths: [ 'merzy-coffee/**', '.github/workflows/frontend.yml', '.github/workflows/deploy.yml' ]
   pull_request:
     branches: [ main, develop ]
-    paths: [ 'merzy-coffee/**', '.github/workflows/frontend.yml' ]
+    paths: [ 'merzy-coffee/**', '.github/workflows/frontend.yml', '.github/workflows/deploy.yml' ]
 
 jobs:
   lint:
