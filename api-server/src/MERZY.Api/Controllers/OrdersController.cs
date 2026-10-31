@@ -1,6 +1,7 @@
 using MERZY.Application.DTOs;
 using MERZY.Application.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace MERZY.Api.Controllers;
 
@@ -13,6 +14,7 @@ public sealed class OrdersController : ControllerBase
     public OrdersController(IOrderService orders) => _orders = orders;
 
     [HttpPost]
+    [EnableRateLimiting("order-create")]
     [RequestSizeLimit(32 * 1024)]
     public async Task<IActionResult> Place([FromBody] PlaceOrderRequest request, CancellationToken ct)
     {
