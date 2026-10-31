@@ -141,7 +141,7 @@ Validates scraped data quality:
 **File**: `image-cache.ts`
 
 Manages image downloading and caching:
-- Downloads images to `frontend/MERZY-Coffe/public/scraped/`
+- Downloads images to `merzy-coffee/public/scraped/`
 - Caches locally to avoid re-downloads
 - Handles rate limiting
 - Retry failed downloads
@@ -185,11 +185,11 @@ SCRAPER_DELAY_MS=1000
 REQUESTS_PER_MINUTE=60
 
 # Image caching
-IMAGE_CACHE_DIR=frontend/MERZY-Coffe/public/scraped
+IMAGE_CACHE_DIR=merzy-coffee/public/scraped
 MAX_IMAGE_SIZE_MB=5
 
 # Output
-OUTPUT_DIR=frontend/MERZY-Coffe/src/data
+OUTPUT_DIR=merzy-coffee/src/data
 ```
 
 ## Data Output
@@ -200,7 +200,7 @@ After running the full pipeline:
 
 **TypeScript Data File**
 ```
-frontend/MERZY-Coffe/src/data/scraped-data.ts
+merzy-coffee/src/data/scraped-data.ts
 ```
 
 Contains:
@@ -212,7 +212,7 @@ Contains:
 
 **Cached Images**
 ```
-frontend/MERZY-Coffe/public/scraped/
+merzy-coffee/public/scraped/
 ├── instagram/
 ├── facebook/
 └── talabat/

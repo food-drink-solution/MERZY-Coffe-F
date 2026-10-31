@@ -1,0 +1,93 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths: [ 'merzy-coffee/**', '.github/workflows/frontend.yml' ]
+  pull_request:
+    branches: [ main, develop ]
+    paths: [ 'merzy-coffee/**', '.github/workflows/frontend.yml' ]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: merzy-coffee
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+          cache-dependency-path: merzy-coffee/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint (Angular ESLint)
+        run: npm run lint
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: merzy-coffee
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Chrome
+        id: chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+          cache-dependency-path: merzy-coffee/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests (headless Chrome)
+        run: npm test -- --watch=false --browsers=ChromeHeadless --code-coverage
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome-path }}
+
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: merzy-coffee
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+          cache-dependency-path: merzy-coffee/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Production build
+        run: npm run build -- --configuration production
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist-${{ github.sha }}
+          path: merzy-coffee/dist/merzy/browser/
+          retention-days: 30

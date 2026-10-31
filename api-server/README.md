@@ -25,11 +25,11 @@ Health check: `GET http://localhost:4000/api/health`
 
 ## Connecting the frontend
 
-The Angular app (in `../frontend/MERZY-Coffe`) still uses its local mock
+The Angular app (in `../merzy-coffee`) still uses its local mock
 services (`core/services/menu.service.ts`, `order.service.ts`). To consume
 this API, add a dev proxy to it:
 
-1. Create `proxy.conf.json` in `frontend/MERZY-Coffe`:
+1. Create `proxy.conf.json` in `merzy-coffee`:
 
    ```json
    {

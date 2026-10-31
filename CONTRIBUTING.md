@@ -25,7 +25,7 @@ Please be respectful and professional in all interactions. We're building a welc
 
 2. **Set up frontend**
    ```bash
-   cd frontend/MERZY-Coffe
+   cd merzy-coffee
    npm install
    npx.cmd ng serve --port 4321
    ```
@@ -54,7 +54,7 @@ Branch naming conventions:
 ### Making Changes
 
 1. **Frontend changes**
-   - Edit files in `frontend/MERZY-Coffe/src/`
+   - Edit files in `merzy-coffee/src/`
    - Follow Angular best practices
    - Use centralized design tokens (see DESIGN_SYSTEM.md)
    - Test in dev server (`npm start`)
@@ -135,7 +135,7 @@ Then create a Pull Request on GitHub with:
 ### Frontend Tests
 
 ```bash
-cd frontend/MERZY-Coffe
+cd merzy-coffee
 ng test
 ```
 

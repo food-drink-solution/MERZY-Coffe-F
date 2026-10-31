@@ -84,7 +84,7 @@ git log --oneline -5
 
 ### Navigate to Frontend Directory
 ```bash
-cd frontend/MERZY-Coffe
+cd merzy-coffee
 ```
 
 ### Install Dependencies
@@ -222,7 +222,7 @@ Configure scraper settings:
 ```env
 SCRAPER_DELAY_MS=1000
 REQUESTS_PER_MINUTE=60
-IMAGE_CACHE_DIR=frontend/MERZY-Coffe/public/scraped
+IMAGE_CACHE_DIR=merzy-coffee/public/scraped
 ```
 
 ## Environment Configuration
@@ -247,12 +247,12 @@ JWT_SECRET=development-secret-key-only
 # Scrapers
 SCRAPER_DELAY_MS=1000
 REQUESTS_PER_MINUTE=60
-IMAGE_CACHE_DIR=frontend/MERZY-Coffe/public/scraped
+IMAGE_CACHE_DIR=merzy-coffee/public/scraped
 ```
 
 ### Frontend Configuration
 
-**File**: `frontend/MERZY-Coffe/src/environments/environment.ts`
+**File**: `merzy-coffee/src/environments/environment.ts`
 
 ```typescript
 export const environment = {
@@ -372,7 +372,7 @@ npm run dev
 
 **Solution**: Check scraped images exist:
 ```bash
-ls frontend/MERZY-Coffe/public/scraped/
+ls merzy-coffee/public/scraped/
 ```
 
 If empty, run scrapers:
@@ -434,7 +434,7 @@ npm audit
 
 #### Terminal 1: Frontend
 ```bash
-cd frontend/MERZY-Coffe
+cd merzy-coffee
 npm start
 ```
 
@@ -468,7 +468,7 @@ After successful installation:
    ```
 
 2. **Explore the Code**
-   - Frontend: `frontend/MERZY-Coffe/src/app/`
+   - Frontend: `merzy-coffee/src/app/`
    - Backend: `api-server/src/`
    - Scripts: `scripts/`
 
@@ -495,7 +495,8 @@ After successful installation:
 ### Documentation
 - `README.md` - Project overview
 - `docs/INDEX.md` - Documentation index
-- `docs/QUICK_START.md` - Quick start guide
+- `docs/ARCHITECTURE.md` - System architecture
+- `docs/INDEX.md` - Full documentation map
 - `docs/ARCHITECTURE.md` - Project structure
 - `CONTRIBUTING.md` - Development guidelines
 

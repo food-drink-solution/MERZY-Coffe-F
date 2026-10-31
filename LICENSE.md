@@ -43,7 +43,7 @@ The source code in this repository is proprietary and confidential. Unauthorized
 ### Third-Party Libraries
 
 This project uses open-source libraries. See dependencies in:
-- `frontend/MERZY-Coffe/package.json` (with licenses)
+- `merzy-coffee/package.json` (with licenses)
 - `api-server/package.json` (with licenses)
 
 Each library maintains its own license terms in:
