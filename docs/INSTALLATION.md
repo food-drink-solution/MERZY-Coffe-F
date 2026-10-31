@@ -80,6 +80,8 @@ export ConnectionStrings__DefaultConnection='Server=localhost;Database=MerzyDev;
 dotnet run --project src/MERZY.Api
 ```
 
+For a containerized local SQL Server, copy `api-server/.env.example` to `api-server/.env`, replace the placeholder with a strong local-only password, then run `docker compose up -d` from `api-server/`. The local `.env` file is ignored by Git; never use a production credential in this stack.
+
 If SQL Server is unavailable, startup logs a migration warning and health probes may still respond. Database-backed endpoints require a reachable database and valid configuration. Do not use a production connection string on a developer workstation.
 
 ## Relevant repository paths
