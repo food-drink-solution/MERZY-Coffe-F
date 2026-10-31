@@ -1,0 +1,22 @@
+{
+  "builds": [
+    {
+      "src": "merzy-coffee/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist/merzy/browser",
+        "buildCommand": "cd merzy-coffee && npm ci && npx ng build --configuration production"
+      }
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.html",
+      "status": 200
+    }
+  ],
+  "env": {
+    "SKIP_ENV_VALIDATION": "true"
+  }
+}
