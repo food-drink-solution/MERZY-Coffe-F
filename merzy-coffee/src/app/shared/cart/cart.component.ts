@@ -33,7 +33,8 @@ import { OrderService } from '../../core/services/order.service';
               <div class="rounded-3xl border border-white/10 bg-white/[0.04] p-4"><div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-[0.18em] text-white/55">Pickup</span><span class="text-xs font-bold uppercase tracking-[0.18em] text-[#c9b8fa]">At MERZY</span></div><p class="mt-2 text-sm leading-relaxed text-white/60">Your order will be prepared for pickup at the Bibliotheca Alexandrina services area.</p></div>
               <fieldset class="rounded-3xl border border-white/10 bg-white/[0.04] p-4"><legend class="px-1 text-xs font-bold uppercase tracking-[0.18em] text-white/55">Payment</legend><label class="mt-2 flex items-center gap-3 text-sm text-white"><input type="radio" name="payment" checked disabled class="accent-[#8e4bf0]"> Pay in store</label><p class="mt-2 text-xs leading-relaxed text-white/45">Payment is completed at the MERZY counter. No card details are collected here.</p></fieldset>
               <div class="flex items-center justify-between"><span class="text-xs font-bold uppercase tracking-[0.18em] text-white/55">Subtotal</span><span class="text-2xl text-[#ffffff]">{{ subtotal }} <span class="font-sans text-sm text-[#c9b8fa]">EGP</span></span></div>
-              <button (click)="checkout()" class="btn-primary w-full justify-center py-3 text-sm"><span class="px-2 font-bold uppercase tracking-widest">Place Order</span><span class="flex h-10 w-10 items-center justify-center rounded-full bg-[#0b0812]"><svg class="h-5 w-5 text-[#c9b8fa]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></span></button>
+              @if (checkoutError) { <p class="mb-3 text-sm text-red-300" role="alert">{{ checkoutError }}</p> }
+              <button (click)="checkout()" [disabled]="checkoutInProgress" class="btn-primary w-full justify-center py-3 text-sm disabled:cursor-not-allowed disabled:opacity-60"><span class="px-2 font-bold uppercase tracking-widest">{{ checkoutInProgress ? 'Submitting…' : 'Place Order' }}</span><span class="flex h-10 w-10 items-center justify-center rounded-full bg-[#0b0812]"><svg class="h-5 w-5 text-[#c9b8fa]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg></span></button>
             </div></div>
           }
         </aside>
@@ -45,6 +46,8 @@ export class CartComponent implements OnInit, OnDestroy {
   isOpen = false;
   items: CartItem[] = [];
   subtotal = 0;
+  checkoutInProgress = false;
+  checkoutError: string | null = null;
   private sub = new Subscription();
 
   constructor(private cartService: CartService, private orderService: OrderService, private cdr: ChangeDetectorRef) {}
@@ -65,9 +68,23 @@ export class CartComponent implements OnInit, OnDestroy {
   removeItem(id: string): void { this.cartService.removeItem(id); }
 
   checkout(): void {
-    if (this.items.length === 0) return;
-    this.orderService.placeOrder(this.items, this.subtotal);
-    this.cartService.clear();
-    this.cartService.close();
+    if (this.items.length === 0 || this.checkoutInProgress) return;
+    this.checkoutInProgress = true;
+    this.checkoutError = null;
+    this.orderService.placeOrder(this.items, this.subtotal).subscribe({
+      next: () => {
+        this.checkoutInProgress = false;
+        this.cartService.clear();
+        this.cartService.close();
+        this.cdr.markForCheck();
+      },
+      error: error => {
+        this.checkoutInProgress = false;
+        this.checkoutError = error?.status === 0
+          ? 'Unable to reach MERZY right now. Your cart is saved; please retry.'
+          : (error?.error?.error ?? 'We could not place your order. Your cart is saved; please retry.');
+        this.cdr.markForCheck();
+      },
+    });
   }
 }
