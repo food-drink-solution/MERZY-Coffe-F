@@ -1,6 +1,5 @@
 using MERZY.Application.DTOs;
 using MERZY.Application.Services;
-using MERZY.Domain.Enums;
 using Microsoft.AspNetCore.Mvc;
 
 namespace MERZY.Api.Controllers;
@@ -14,6 +13,7 @@ public sealed class OrdersController : ControllerBase
     public OrdersController(IOrderService orders) => _orders = orders;
 
     [HttpPost]
+    [RequestSizeLimit(32 * 1024)]
     public async Task<IActionResult> Place([FromBody] PlaceOrderRequest request, CancellationToken ct)
     {
         if (request is null || request.Items is null || request.Items.Count == 0)
@@ -38,26 +38,12 @@ public sealed class OrdersController : ControllerBase
         return order is null ? NotFound(new { error = "Order not found." }) : Ok(order);
     }
 
+    // Fail closed: changing an order's state is an operational/staff action.
+    // Do not expose mutation until an authenticated staff policy is implemented.
     [HttpPatch("{id:guid}/status")]
-    public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest request, CancellationToken ct)
-    {
-        if (request is null || !Enum.TryParse<OrderStatus>(request.Status, ignoreCase: true, out var status))
-            return BadRequest(new { error = "Status must be one of: Received, Preparing, Ready, Completed, Cancelled." });
-
-        try
+    public IActionResult UpdateStatus(Guid id) =>
+        StatusCode(StatusCodes.Status501NotImplemented, new
         {
-            var order = await _orders.UpdateStatusAsync(id, status, ct);
-            return Ok(order);
-        }
-        catch (OrderNotFoundException)
-        {
-            return NotFound(new { error = "Order not found." });
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new { error = ex.Message });
-        }
-    }
-
-    public sealed record UpdateStatusRequest(string? Status);
+            error = "Order status updates are disabled until staff authentication and authorization are implemented."
+        });
 }
