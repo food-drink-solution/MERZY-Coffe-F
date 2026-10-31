@@ -72,14 +72,19 @@ app.UseCors("MerzyWeb");
 app.UseRateLimiter();
 app.MapControllers();
 
-// Apply pending migrations at startup so the deployment is self-sufficient.
-// A missing database server must never block the health probe — data endpoints
-// will report an error if the database is unavailable.
-using (var scope = app.Services.CreateScope())
+// Apply migrations only when a connection string is configured. Health probes
+// must still start in CI or diagnostics environments without database secrets.
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
 {
-    var db = scope.ServiceProvider.GetRequiredService<MerzyDbContext>();
+    app.Logger.LogWarning("ConnectionStrings:DefaultConnection is not configured; startup migrations are skipped.");
+}
+else
+{
     try
     {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MerzyDbContext>();
         await db.Database.MigrateAsync();
     }
     catch (Exception ex)
