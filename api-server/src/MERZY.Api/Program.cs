@@ -1,25 +1,45 @@
+using System.Threading.RateLimiting;
 using MERZY.Application;
 using MERZY.Infrastructure;
 using MERZY.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ---- CORS: the production frontend (Vercel) + local dev server ----
-var allowedOrigins = new[]
-{
-    "https://merzy-coffe.vercel.app",
-    "http://localhost:4321",
-    "https://localhost:4321",
-};
+// Configure trusted browser origins via MERZY_CORS_ORIGINS (comma-separated).
+// Keep local origins as development defaults; production hosts should set the
+// variable explicitly in the hosting environment.
+var configuredOrigins = builder.Configuration["MERZY_CORS_ORIGINS"];
+var defaultOrigins = builder.Environment.IsDevelopment()
+    ? new[] { "https://merzy-coffe.vercel.app", "http://localhost:4321", "https://localhost:4321" }
+    : new[] { "https://merzy-coffe.vercel.app" };
+var allowedOrigins = string.IsNullOrWhiteSpace(configuredOrigins)
+    ? defaultOrigins
+    : configuredOrigins.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
 builder.Services.AddCors(options =>
     options.AddPolicy("MerzyWeb", policy =>
         policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .WithMethods("GET", "POST", "PATCH")));
+
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("order-create", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true,
+            }));
+});
 
 // ---- Layer composition ----
 builder.Services.AddApplication();
@@ -33,7 +53,7 @@ builder.Services.AddSwaggerGen(options =>
     {
         Title = "MERZY API",
         Description = "Backend for MERZY specialty coffee & bakery (Alexandria, Egypt). " +
-                      "Menu reads, order placement and the forward-only order status machine.",
+                      "Menu reads and order placement. Staff order-status mutation is disabled until authorization is implemented.",
         Version = "v1",
     });
 });
@@ -52,19 +72,25 @@ app.UseSwaggerUI(options =>
 
 app.MapHealthChecks("/healthz");
 
-// CORS must run before endpoint mapping so the browser preflight (OPTIONS) is answered.
+// Explicit routing keeps endpoint-aware rate limiting in the correct middleware position.
+app.UseRouting();
 app.UseCors("MerzyWeb");
-
+app.UseRateLimiter();
 app.MapControllers();
 
-// Apply pending migrations at startup so the deployment is self-sufficient.
-// A missing database server must never block the health probe — the app
-// serves fine for health checks and surfaces DB errors on data endpoints.
-using (var scope = app.Services.CreateScope())
+// Apply migrations only when a connection string is configured. Health probes
+// must still start in CI or diagnostics environments without database secrets.
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrWhiteSpace(connectionString))
 {
-    var db = scope.ServiceProvider.GetRequiredService<MerzyDbContext>();
+    app.Logger.LogWarning("ConnectionStrings:DefaultConnection is not configured; startup migrations are skipped.");
+}
+else
+{
     try
     {
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<MerzyDbContext>();
         await db.Database.MigrateAsync();
     }
     catch (Exception ex)

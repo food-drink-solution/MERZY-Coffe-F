@@ -7,6 +7,9 @@ using MERZY.Domain.Enums;
 
 public sealed class OrderService : IOrderService
 {
+    private const int MaxItemsPerOrder = 50;
+    private const int MaxQuantityPerItem = 100;
+
     private readonly IMenuItemRepository _menuItems;
     private readonly IOrderRepository _orders;
 
@@ -21,8 +24,11 @@ public sealed class OrderService : IOrderService
         if (request.Items is null || request.Items.Count == 0)
             throw new InvalidOperationException("An order needs at least one item.");
 
-        if (request.Items.Any(i => i.Quantity <= 0))
-            throw new InvalidOperationException("Item quantity must be greater than zero.");
+        if (request.Items.Count > MaxItemsPerOrder)
+            throw new InvalidOperationException($"An order cannot contain more than {MaxItemsPerOrder} line items.");
+
+        if (request.Items.Any(i => i.Quantity <= 0 || i.Quantity > MaxQuantityPerItem))
+            throw new InvalidOperationException($"Item quantity must be between 1 and {MaxQuantityPerItem}.");
 
         if (string.IsNullOrWhiteSpace(request.Notes) is false && request.Notes!.Length > 300)
             throw new InvalidOperationException("Notes cannot exceed 300 characters.");

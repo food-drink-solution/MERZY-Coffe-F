@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnDestroy, OnInit, inject } from '@angular/core';
+import { Subscription } from 'rxjs';
 import { MenuService } from '../../core/services/menu.service';
 import { CartService } from '../../core/services/cart.service';
 import { MenuItem } from '../../core/models/menu.model';
@@ -28,7 +29,10 @@ interface Feature {
       <div class="mx-auto mt-16 max-w-4xl px-4 sm:mt-24 sm:px-6">
         <div class="section-heading mb-8"><span class="eyebrow mb-4 block">The Menu</span><h3 class="section-title text-3xl sm:text-4xl">Order From MERZY</h3></div>
         <div class="mb-8 flex justify-start"><div class="menu-tabs"><button (click)="activeCategory = 'coffee'" [class.active]="activeCategory === 'coffee'" class="menu-tab">Coffee</button><button (click)="activeCategory = 'bakery'" [class.active]="activeCategory === 'bakery'" class="menu-tab">Bakery</button></div></div>
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        @if (loading) { <p class="py-8 text-center text-sm text-white/60" role="status">Loading the MERZY menu…</p> }
+        @if (loadError) { <div class="py-8 text-center" role="alert"><p class="mb-3 text-sm text-white/70">The menu could not be loaded. Check your connection and try again.</p><button class="menu-tab" (click)="retryMenu()">Retry</button></div> }
+        @if (!loading && !loadError && activeItems.length === 0) { <p class="py-8 text-center text-sm text-white/60">No menu items are available in this category right now.</p> }
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2" [attr.aria-busy]="loading">
           @for (item of activeItems; track item.id) {
             <div class="menu-item group flex items-center gap-4 p-5 transition-all duration-300">
               <div class="min-w-0 flex-1"><div class="mb-1 flex items-baseline justify-between gap-3"><h4 class="truncate text-sm font-bold uppercase tracking-wider">{{ item.name }}</h4><span class="menu-price whitespace-nowrap text-sm font-bold">{{ item.price }} EGP</span></div><p class="text-xs leading-relaxed">{{ item.description }}</p></div>
@@ -40,11 +44,34 @@ interface Feature {
     </section>
   `,
 })
-export class MenuComponent {
+export class MenuComponent implements OnInit, OnDestroy {
   private menuService = inject(MenuService);
   private cartService = inject(CartService);
 
   activeCategory: 'coffee' | 'bakery' = 'coffee';
+  items: MenuItem[] = [];
+  loading = true;
+  loadError = false;
+  private menuSubscription?: Subscription;
+
+  ngOnInit(): void {
+    this.menuSubscription = this.menuService.getItems().subscribe({
+      next: items => { this.items = items; this.loading = false; this.loadError = false; },
+      error: () => { this.loading = false; this.loadError = true; },
+    });
+  }
+
+  ngOnDestroy(): void { this.menuSubscription?.unsubscribe(); }
+
+  retryMenu(): void {
+    this.loading = true;
+    this.loadError = false;
+    this.menuSubscription?.unsubscribe();
+    this.menuSubscription = this.menuService.getItems().subscribe({
+      next: items => { this.items = items; this.loading = false; this.loadError = false; },
+      error: () => { this.loading = false; this.loadError = true; },
+    });
+  }
 
   features: Feature[] = [
     { label: 'Specialty Coffee', title: 'Coffee, Made With Care.', description: 'Carefully prepared espresso and manual brews made for people who appreciate the details.', image: 'scraped/instagram/post-jun05-morning.jpg', alt: 'Morning specialty coffee at MERZY' },
@@ -52,7 +79,7 @@ export class MenuComponent {
   ];
 
   get activeItems(): MenuItem[] {
-    return this.menuService.getByCategory(this.activeCategory);
+    return this.items.filter(item => item.category === this.activeCategory);
   }
 
   addToCart(item: MenuItem): void {

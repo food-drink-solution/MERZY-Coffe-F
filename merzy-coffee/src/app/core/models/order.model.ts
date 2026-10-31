@@ -4,6 +4,7 @@ export type OrderStatus = 'received' | 'preparing' | 'ready';
 
 export interface Order {
   id: string;
+  serverId?: string;
   items: CartItem[];
   total: number;
   status: OrderStatus;

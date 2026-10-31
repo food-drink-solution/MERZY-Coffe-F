@@ -37,25 +37,24 @@ Strategic roadmap for MERZY Coffee & Bakery platform development.
 ### Phase 2: Backend Integration (Q1 2027)
 
 **Planned Features**
-- [ ] Order persistence (database)
-- [ ] Real order management
+- [x] Order persistence (EF Core + SQL Server)
+- [ ] Real staff order management (status mutation is disabled pending authorization)
 - [ ] Kitchen display system
 - [ ] Order notifications
 - [ ] Real-time status updates
 - [ ] Payment integration prep
 
 **Database**
-- [ ] PostgreSQL setup
-- [ ] Order schema
-- [ ] Item schema
-- [ ] User schema (optional)
+- [x] SQL Server setup and order/menu schema
+- [ ] User/staff identity schema (as required by authentication)
 
 **API Enhancements**
 - [ ] Authentication
 - [ ] Validation middleware
 - [ ] Error handling
-- [ ] Rate limiting
-- [ ] Logging
+- [x] Basic order-create rate limiting
+- [x] Structured application logging configuration
+- [ ] Authentication/authorization and security review
 
 ### Phase 3: User Experience (Q2 2027)
 
@@ -129,8 +128,8 @@ Strategic roadmap for MERZY Coffee & Bakery platform development.
 - [ ] Deployment guides
 
 ### Testing
-- [ ] Unit tests (frontend)
-- [ ] Integration tests
+- [ ] Broader frontend unit-test coverage
+- [ ] API integration tests
 - [ ] E2E tests
 - [ ] Performance testing
 - [ ] Load testing
@@ -166,7 +165,9 @@ Strategic roadmap for MERZY Coffee & Bakery platform development.
 ## Dependencies & Blockers
 
 ### Current Blockers
-- None identified
+- Production credential rotation and removal from Git history must be completed
+- Vercel deployment failure needs actual build logs
+- Angular checkout still uses mock data and is not integrated with the API
 
 ### Upcoming Dependencies
 - Database selection (Q1 2027)
@@ -209,7 +210,7 @@ Strategic roadmap for MERZY Coffee & Bakery platform development.
 
 ### Infrastructure
 - **Hosting**: Cloud provider (AWS/GCP/Azure)
-- **Database**: PostgreSQL
+- **Database**: SQL Server (EF Core)
 - **Storage**: Image CDN
 - **Monitoring**: APM tool
 

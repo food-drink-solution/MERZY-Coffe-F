@@ -21,7 +21,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Cart drawer with quantity controls
 
 #### Backend
-- Express.js API server foundation
+- ASP.NET Core 8 Clean Architecture API with EF Core and SQL Server
 - Health check endpoint (`/api/health`)
 - Menu endpoint (`/api/menu`)
 - Order endpoints (`/api/orders`)
@@ -68,7 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - N/A (Initial Release)
 
 ### Security
-- No sensitive data in repository
+- No sensitive data should be committed; any previously exposed credentials must be rotated
 - Environment variables for configuration
 - Proper error handling without exposing internals
 - HTTPS recommended for production
@@ -76,10 +76,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## Unreleased
 
 ### Planned for Phase 2 (Q1 2027)
-- Database integration (PostgreSQL)
-- User authentication
+- Frontend/API integration
+- Staff authentication and authorization
 - Payment gateway integration
-- Real order persistence
 - Email notifications
 - Advanced order management
 
@@ -106,7 +105,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### 1.0.0
 - **Release Date**: October 31, 2026
-- **Status**: Production Ready
+- **Status**: MVP; production readiness and live deployment remain unverified
 - **Features**: MVP with complete scraper system
 - **Code Statistics**:
   - 2500+ lines of implementation
@@ -132,9 +131,8 @@ To stay updated with the latest changes:
 
 2. **Install dependencies**
    ```bash
-   npm install
-   cd merzy-coffee && npm install
-   cd ../api-server && npm install
+   cd merzy-coffee && npm ci
+   cd ../api-server && dotnet restore MERZY.Backend.sln
    ```
 
 3. **Review breaking changes** (if any)
