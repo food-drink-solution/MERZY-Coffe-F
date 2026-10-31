@@ -1,5 +1,7 @@
 # Local development stack: SQL Server 2022 + MERZY API.
-# usage: docker compose up -d  (from api-server/)
+# From api-server/, copy .env.example to .env and replace its placeholder
+# with a strong local-only password before running: docker compose up -d.
+# Never use a production password in this file or in a local compose stack.
 
 services:
   sqlserver:
@@ -7,13 +9,15 @@ services:
     container_name: merzy-sql
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "Merzy_2026_Strong!"
+      MSSQL_SA_PASSWORD: "${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in api-server/.env}"
     ports:
       - "1433:1433"
     volumes:
       - merzy-sql-data:/var/opt/mssql
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Merzy_2026_Strong!' -C -Q 'SELECT 1' -b -o /dev/null"]
+      test:
+        - CMD-SHELL
+        - /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$$MSSQL_SA_PASSWORD" -C -Q 'SELECT 1' -b -o /dev/null
       interval: 10s
       timeout: 5s
       retries: 10
@@ -26,7 +30,7 @@ services:
         condition: service_healthy
     environment:
       ASPNETCORE_ENVIRONMENT: Production
-      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=MerzyDb;User Id=sa;Password=Merzy_2026_Strong!;TrustServerCertificate=True;MultipleActiveResultSets=true"
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=MerzyDb;User Id=sa;Password=${MSSQL_SA_PASSWORD:?Set MSSQL_SA_PASSWORD in api-server/.env};TrustServerCertificate=True;MultipleActiveResultSets=true"
     ports:
       - "8080:8080"
 
