@@ -1,0 +1,15 @@
+# --- deps ---
+node_modules/
+
+# --- source ---
+src/
+.env*
+Dockerfile
+.dockerignore
+README.md
+package-lock.json.bak
+
+# --- misc ---
+*.log
+.git/
+.gitignore

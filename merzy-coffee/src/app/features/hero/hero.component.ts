@@ -19,7 +19,7 @@ import { AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestro
         </div>
         <div class="hero-media-column relative min-h-[17rem] p-4 sm:min-h-[23rem] sm:p-7 lg:min-h-0 lg:p-9 xl:p-12">
           <div class="hero-media group relative h-full min-h-[17rem] overflow-hidden reveal sm:min-h-[23rem] lg:min-h-0">
-            <video #heroVideo class="hero-video absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" autoplay muted loop playsinline preload="metadata" poster="scraped/instagram/post-oct14-v60.jpg" aria-label="Espresso and bakery preparation at MERZY"><source src="https://videos.pexels.com/video-files/6602224/6602224-sd_360_640_30fps.mp4" type="video/mp4"><img src="scraped/instagram/post-oct14-v60.jpg" alt="V60 coffee at MERZY in Alexandria" width="1200" height="900" decoding="async"></video>
+            <video #heroVideo class="hero-video absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105" muted loop playsinline preload="metadata" poster="scraped/instagram/post-oct14-v60.jpg" aria-label="Espresso and bakery preparation at MERZY"><source src="https://videos.pexels.com/video-files/6602224/6602224-sd_360_640_30fps.mp4" type="video/mp4"><img src="scraped/instagram/post-oct14-v60.jpg" alt="V60 coffee at MERZY in Alexandria" width="1200" height="900" decoding="async"></video>
             <div class="hero-media-topline absolute left-5 right-5 top-5 z-10 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.22em] text-white/70 sm:left-7 sm:right-7 sm:top-7"><span>MERZY</span><span>Specialty Coffee / Bakery</span></div>
             <div class="absolute bottom-5 left-5 z-10 sm:bottom-8 sm:left-8"><div class="glass-effect rounded-xl px-4 py-3"><div class="text-xs font-bold uppercase tracking-widest text-[#4a1678]">MERZY</div><div class="mt-1 text-sm text-[#0b0812]">Coffee. Bakery. Mediterranean moments.</div></div></div>
           </div>
@@ -48,6 +48,8 @@ export class HeroComponent implements AfterViewInit, OnDestroy {
     const video = this.heroVideo?.nativeElement;
     if (!video) return;
     if (this.motionQuery?.matches) video.pause();
-    else void video.play();
+    else video.play().catch(() => {
+      /* Autoplay denied by browser policy — the poster image stays visible until interaction. */
+    });
   };
 }

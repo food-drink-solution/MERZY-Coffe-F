@@ -55,7 +55,7 @@ Instructions for deploying MERZY to production environments.
 ### Build for Production
 
 ```bash
-cd frontend/MERZY-Coffe
+cd merzy-coffee
 npm run build
 ```
 
@@ -89,17 +89,18 @@ firebase init hosting
 firebase deploy --only hosting
 ```
 
-### Deploy to Netlify
+### Deploy to Vercel
 
 ```bash
-# Install Netlify CLI
-npm install -g netlify-cli
+# Install Vercel CLI
+npm install -g vercel
 
 # Build
 npm run build
 
 # Deploy
-netlify deploy --prod --dir=dist/merzy
+cd merzy-coffee
+vercel --prod
 ```
 
 ### Deploy to AWS S3 + CloudFront
