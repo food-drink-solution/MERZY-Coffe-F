@@ -39,17 +39,19 @@ npx.cmd ng build       # output: merzy-coffee/dist/merzy
 cd api-server
 dotnet run --project src/MERZY.Api      # http://localhost:4000 (Swagger at /swagger)
 ```
-- Build/test: `dotnet build MERZY.Backend.sln` / `dotnet test tests/MERZY.UnitTests`
+- Build/test: `dotnet build MERZY.Backend.sln -c Release` / `dotnet test tests/MERZY.UnitTests/MERZY.UnitTests.csproj -c Release`
+- Configure database access using `ConnectionStrings__DefaultConnection`; never commit credentials.
 - Migrations: `dotnet ef migrations add <Name> -p src/MERZY.Infrastructure -s src/MERZY.Api`
   (target server via `ConnectionStrings__DefaultConnection` env var)
-Endpoints: `/healthz`, `/api/health`, `/api/menu`, `/api/orders` (POST),
-`/api/orders/:id`, `/api/orders/:id/status` (PATCH). Statuses are forward-only:
-Received → Preparing → Ready → Completed (+ Cancelled from Received/Preparing).
+Endpoints: `/healthz`, `/api/health`, `/api/menu`, `/api/orders` (POST), and
+`/api/orders/{id}` (GET). The `/api/orders/{id}/status` PATCH route is disabled
+with HTTP 501 until staff authentication/authorization is implemented. Service-level
+state transition rules remain covered by unit tests.
 
 ## Features
 - Interactive menu with coffee & bakery items (add-to-cart)
 - Slide-out floating rounded cart drawer (responsive)
-- Order placement and status tracking (Received → Preparing → Ready)
+- Local demo checkout and order-status simulation (not yet integrated with the API)
 - Real scraped Instagram photos in `merzy-coffee/public/scraped/instagram/`
 
 ## Design system
