@@ -17,7 +17,10 @@ interface ApiMenuResponse { count: number; items: ApiMenuItem[]; }
 
 @Injectable({ providedIn: 'root' })
 export class MenuService {
-  private readonly menu$ = this.http.get<ApiMenuResponse>(`${environment.apiUrl}/menu`).pipe(
+  private readonly menu$: Observable<MenuItem[]>;
+
+  constructor(private readonly http: HttpClient) {
+    this.menu$ = this.http.get<ApiMenuResponse>(`${environment.apiUrl}/menu`).pipe(
     map(response => response.items
       .filter(item => item.isAvailable)
       .map(item => ({
@@ -29,8 +32,7 @@ export class MenuService {
       }))),
     shareReplay({ bufferSize: 1, refCount: true }),
   );
-
-  constructor(private readonly http: HttpClient) {}
+  }
 
   getItems(): Observable<MenuItem[]> { return this.menu$; }
 
