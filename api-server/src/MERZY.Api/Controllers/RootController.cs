@@ -7,14 +7,12 @@ namespace MERZY.Api.Controllers;
 /// </summary>
 [ApiController]
 [Route("")]
-public class RootController : ControllerBase
+public sealed class RootController : ControllerBase
 {
     /// <summary>
     /// Welcome endpoint — redirects to Swagger documentation.
     /// </summary>
-    /// <returns>Redirect to /swagger UI</returns>
-    [HttpGet(Name = "GetRoot")]
-    [ProduceResponseType(StatusCodes.Status301MovedPermanently)]
+    [HttpGet]
     public IActionResult Index()
     {
         return RedirectPermanent("/swagger");
@@ -23,43 +21,19 @@ public class RootController : ControllerBase
     /// <summary>
     /// API information endpoint.
     /// </summary>
-    /// <returns>API metadata</returns>
-    [HttpGet("info", Name = "GetInfo")]
-    [ProduceResponseType(typeof(ApiInfoDto), StatusCodes.Status200OK)]
-    public ActionResult<ApiInfoDto> Info()
+    [HttpGet("info")]
+    public IActionResult Info()
     {
-        return Ok(new ApiInfoDto
+        var info = new
         {
-            Service = "MERZY API",
-            Version = "1.0.0",
-            Environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Unknown",
-            Timestamp = DateTime.UtcNow,
-            Documentation = "https://merzy-coffee-api.runasp.net/swagger",
-            HealthCheck = "https://merzy-coffee-api.runasp.net/healthz"
-        });
+            service = "MERZY API",
+            version = "1.0.0",
+            environment = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") ?? "Unknown",
+            timestamp = DateTime.UtcNow,
+            documentation = "https://merzy-coffee-api.runasp.net/swagger",
+            healthCheck = "https://merzy-coffee-api.runasp.net/healthz"
+        };
+
+        return Ok(info);
     }
-}
-
-/// <summary>
-/// API information data transfer object.
-/// </summary>
-public record ApiInfoDto
-{
-    /// <summary>Service name</summary>
-    public string Service { get; init; }
-
-    /// <summary>API version</summary>
-    public string Version { get; init; }
-
-    /// <summary>Environment (Development, Production, etc.)</summary>
-    public string Environment { get; init; }
-
-    /// <summary>Current server timestamp (UTC)</summary>
-    public DateTime Timestamp { get; init; }
-
-    /// <summary>Link to Swagger documentation</summary>
-    public string Documentation { get; init; }
-
-    /// <summary>Link to health check endpoint</summary>
-    public string HealthCheck { get; init; }
 }
