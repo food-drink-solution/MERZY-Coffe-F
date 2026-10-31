@@ -1,0 +1,34 @@
+# Local development stack: SQL Server 2022 + MERZY API.
+# usage: docker compose up -d  (from api-server/)
+
+services:
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: merzy-sql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Merzy_2026_Strong!"
+    ports:
+      - "1433:1433"
+    volumes:
+      - merzy-sql-data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Merzy_2026_Strong!' -C -Q 'SELECT 1' -b -o /dev/null"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build: .
+    container_name: merzy-api
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Server=sqlserver,1433;Database=MerzyDb;User Id=sa;Password=Merzy_2026_Strong!;TrustServerCertificate=True;MultipleActiveResultSets=true"
+    ports:
+      - "8080:8080"
+
+volumes:
+  merzy-sql-data:

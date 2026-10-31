@@ -1,15 +1,26 @@
-# --- deps ---
-node_modules/
-
-# --- source ---
-src/
-.env*
-Dockerfile
-.dockerignore
-README.md
-package-lock.json.bak
-
-# --- misc ---
-*.log
-.git/
+# Version control
+.git
 .gitignore
+.gitattributes
+
+# Build outputs (regenerated in the container)
+bin/
+obj/
+
+# IDE / OS noise
+.idea/
+.vs/
+.vscode/
+*.user
+*.suo
+Thumbs.db
+.DS_Store
+
+# Local docs and scratch (Runtime stays lean; README ships in repo only)
+README.md
+docker-compose.yml
+
+# Never ship these
+.env
+.env.*
+logs/
