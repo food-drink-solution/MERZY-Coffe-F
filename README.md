@@ -8,13 +8,17 @@ brand: **true black ink, electric violet accents, Sora + Outfit typography**.
 
 ```
 .
-├── .github/                  # CI workflows, issue/PR templates
-├── api-server/               # Node.js API server (Express) — ready for backend work
-│   ├── src/index.js          #   server entry (health, menu, orders endpoints)
-│   ├── package.json
+├── .github/                  # CI/CD workflows (frontend lint/test/build, backend dotnet, deploy)
+├── api-server/               # ASP.NET Core 8 backend — Clean Architecture (EF Core + SQL Server)
+│   ├── src/MERZY.Domain/     #   entities + enums (no dependencies)
+│   ├── src/MERZY.Application/#   use cases, DTOs, repository interfaces
+│   ├── src/MERZY.Infrastructure/ # EF Core SqlServer, repositories, migrations
+│   ├── src/MERZY.Api/        #   controllers, Program.cs, Swagger (all envs)
+│   ├── tests/MERZY.UnitTests/#   xUnit tests with in-memory fakes
 │   └── README.md
 ├── docs/                     # Project documentation markdown
 │   ├── INDEX.md              # Start here for all docs
+│   ├── BACKEND.md            # Backend architecture reference
 │   ├── ARCHITECTURE.md
 │   ├── DESIGN_SYSTEM.md
 │   ├── DEPLOYMENT.md
@@ -52,12 +56,15 @@ npx.cmd ng build   # output in merzy-coffee/dist/merzy
 
 ```bash
 cd api-server
-npm install
-npm run dev        # http://localhost:4000/api/health
+dotnet run --project src/MERZY.Api        # http://localhost:4000 (Swagger at /swagger)
+dotnet test tests/MERZY.UnitTests         # 17 unit tests, no SQL needed
 ```
 
-See `api-server/README.md` for the planned endpoints and how to connect the
-Angular frontend through a dev proxy.
+Deployment (production): SQL Server on databaseasp.net + the API at
+`http://merzy-coffee-api.runasp.net`, serving the frontend at
+`https://merzy-coffe.vercel.app` (CORS allow-listed). See
+`api-server/README.md` and `docs/BACKEND.md` for endpoints, migrations and the
+deploy artifact.
 
 ## Documentation
 
@@ -65,6 +72,7 @@ All docs live in [`docs/`](./docs) — start with [`docs/INDEX.md`](./docs/INDEX
 Key documents:
 
 - [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — layers, models, services
+- [`docs/BACKEND.md`](./docs/BACKEND.md) — ASP.NET backend architecture + production settings
 - [`docs/INSTALLATION.md`](./docs/INSTALLATION.md) — environment setup
 - [`docs/scraped-data.md`](./docs/scraped-data.md) — real MERZY data + imagery sources
 

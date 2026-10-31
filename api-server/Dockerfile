@@ -1,18 +1,42 @@
-# --- deps stage ---
-FROM node:22-alpine AS deps
-WORKDIR /app
-COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+# ------------------------------------------------------------------
+# MERZY API — ASP.NET Core 8 / SQL Server (EF Core), Clean Architecture
+# Build context: api-server/
+# ------------------------------------------------------------------
 
-# --- runtime stage ---
-FROM node:22-alpine
-ENV NODE_ENV=production
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY src ./src
-COPY package.json ./
+# ---- Build stage ----
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
 
-EXPOSE 4000
-USER node
-HEALTHCHECK --interval=30s --timeout=5s --start-period=5s CMD wget -qO- http://localhost:4000/api/health > /dev/null || exit 1
-CMD ["node", "src/index.js"]
+# Restore first: layer cache keeps dependencies out of rebuilds
+COPY ["Directory.Build.props", "./"]
+COPY ["MERZY.Backend.sln", "./"]
+COPY ["src/MERZY.Domain/MERZY.Domain.csproj", "src/MERZY.Domain/"]
+COPY ["src/MERZY.Application/MERZY.Application.csproj", "src/MERZY.Application/"]
+COPY ["src/MERZY.Infrastructure/MERZY.Infrastructure.csproj", "src/MERZY.Infrastructure/"]
+COPY ["src/MERZY.Api/MERZY.Api.csproj", "src/MERZY.Api/"]
+COPY ["tests/MERZY.UnitTests/MERZY.UnitTests.csproj", "tests/MERZY.UnitTests/"]
+RUN dotnet restore "MERZY.Backend.sln"
+
+# Copy the rest of the source and publish
+COPY . .
+RUN dotnet publish "src/MERZY.Api/MERZY.Api.csproj" \
+      -c Release \
+      -o /app/publish \
+      --no-restore \
+      /p:UseAppHost=false
+
+# ---- Runtime stage ----
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+
+ENV ASPNETCORE_URLS=http://+:8080 \
+    ASPNETCORE_ENVIRONMENT=Production
+
+COPY --from=build /app/publish .
+
+EXPOSE 8080
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD wget -q -O /dev/null http://localhost:8080/healthz || exit 1
+
+ENTRYPOINT ["dotnet", "MERZY.Api.dll"]

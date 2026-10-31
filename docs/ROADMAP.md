@@ -29,10 +29,9 @@ Strategic roadmap for MERZY Coffee & Bakery platform development.
 - ✅ Data validation
 
 **Backend Foundation**
-- ✅ Express API server setup
-- ✅ Health check endpoint
-- ✅ Menu endpoint
-- ✅ Order endpoints
+- ✅ ASP.NET Core 8 API (Clean Architecture: Domain / Application / Infrastructure / Api)
+- ✅ EF Core 8 + SQL Server, startup migrations, hosted production database
+- ✅ Unit tests (xUnit, 17 passing) and .NET CI pipeline
 - ✅ Order tracking
 
 ### Phase 2: Backend Integration (Q1 2027)

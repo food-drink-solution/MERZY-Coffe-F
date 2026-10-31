@@ -48,6 +48,21 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Publish API (zip artifact for runasp.net / IIS upload)
+        run: dotnet publish api-server/src/MERZY.Api/MERZY.Api.csproj -c Release -o api-publish --nologo
+
+      - name: Upload publish artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-publish-${{ github.sha }}
+          path: api-publish/
+          retention-days: 30
+
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 

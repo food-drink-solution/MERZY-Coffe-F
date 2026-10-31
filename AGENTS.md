@@ -2,15 +2,18 @@
 
 ## Overview
 MERZY is a specialty coffee & bakery site (Alexandria, Egypt) split into a pure
-frontend app and a Node.js API server. All frontend data is mocked in
+frontend app and an ASP.NET Core 8 + EF Core + SQL Server API backend
+(Clean Architecture). All frontend data is mocked in
 `merzy-coffee/src/app/core/services/`; no secrets required.
 
 ## Structure
 ```
-.github/workflows/    CI: frontend lint/test/build + backend smoke; CD: release artifact + GHCR image
-api-server/           Node.js (Express) backend, ready for development
-docs/                 Project documentation markdown
-merzy-coffee/ Angular 18 app (all frontend code + public/ assets)
+.github/workflows/    CI: frontend lint/test/build + backend dotnet build/test/smoke;
+                      CD: Release publish artifact + GHCR image
+api-server/           ASP.NET Core 8 backend (Clean Architecture:
+                      Domain / Application / Infrastructure / Api + unit tests)
+docs/                 Project documentation markdown (see docs/BACKEND.md)
+merzy-coffee/         Angular 18 app (all frontend code + public/ assets)
 scripts/              Data collection / processing utilities
 ```
 
@@ -34,12 +37,14 @@ npx.cmd ng build       # output: merzy-coffee/dist/merzy
 ## Running the api-server
 ```powershell
 cd api-server
-npm install
-npm run dev            # http://localhost:4000/api/health
+dotnet run --project src/MERZY.Api      # http://localhost:4000 (Swagger at /swagger)
 ```
-Endpoints: `/api/health`, `/api/menu`, `/api/orders` (POST), `/api/orders/:id`,
-`/api/orders/:id/status` (PATCH). Statuses mirror the frontend flow
-(Received → Preparing → Ready).
+- Build/test: `dotnet build MERZY.Backend.sln` / `dotnet test tests/MERZY.UnitTests`
+- Migrations: `dotnet ef migrations add <Name> -p src/MERZY.Infrastructure -s src/MERZY.Api`
+  (target server via `ConnectionStrings__DefaultConnection` env var)
+Endpoints: `/healthz`, `/api/health`, `/api/menu`, `/api/orders` (POST),
+`/api/orders/:id`, `/api/orders/:id/status` (PATCH). Statuses are forward-only:
+Received → Preparing → Ready → Completed (+ Cancelled from Received/Preparing).
 
 ## Features
 - Interactive menu with coffee & bakery items (add-to-cart)
