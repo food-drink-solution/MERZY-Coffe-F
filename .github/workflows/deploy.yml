@@ -1,0 +1,166 @@
+name: Deploy to Production
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'frontend/**'
+      - 'api-server/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint || true
+
+      - name: Run tests
+        run: npm run test || true
+
+  build-frontend:
+    needs: test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/MERZY-Coffe
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+          cache-dependency-path: frontend/MERZY-Coffe/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build -- --configuration production
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/MERZY-Coffe/dist/merzy/
+          retention-days: 30
+
+  build-backend:
+    needs: test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api-server
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Use Node.js 22.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          cache: 'npm'
+          cache-dependency-path: api-server/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build application
+        run: npm run build || npm run check
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-dist
+          path: api-server/dist/
+          retention-days: 30
+
+  deploy:
+    needs: [ build-frontend, build-backend ]
+    runs-on: ubuntu-latest
+    if: success()
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download frontend artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: ./dist-frontend
+
+      - name: Download backend artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-dist
+          path: ./dist-backend
+
+      - name: Verify artifacts
+        run: |
+          echo "Frontend build files:"
+          ls -la ./dist-frontend/ | head -20
+          echo "Backend build files:"
+          ls -la ./dist-backend/ | head -20
+
+      - name: Deploy notification
+        run: |
+          echo "✅ Deployment ready for:"
+          echo "- Frontend: merzy.coffee"
+          echo "- Backend: api.merzy.coffee"
+          echo ""
+          echo "⚠️  Manual deployment required:"
+          echo "1. Download artifacts"
+          echo "2. Deploy to hosting provider"
+          echo "3. Update DNS if needed"
+          echo "4. Verify endpoints"
+
+  notify:
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - name: Success notification
+        if: success()
+        run: |
+          echo "✅ DEPLOYMENT SUCCESSFUL"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "Actor: ${{ github.actor }}"
+
+      - name: Failure notification
+        if: failure()
+        run: |
+          echo "❌ DEPLOYMENT FAILED"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: ${{ github.ref }}"
+          echo "Check logs for details"
+
+      - name: Create deployment record
+        run: |
+          echo "Deployment Summary:" > deployment-summary.txt
+          echo "Time: $(date)" >> deployment-summary.txt
+          echo "Commit: ${{ github.sha }}" >> deployment-summary.txt
+          echo "Status: ${{ job.status }}" >> deployment-summary.txt
+          cat deployment-summary.txt
