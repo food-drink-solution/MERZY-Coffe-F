@@ -39,6 +39,36 @@ jobs:
       - name: Unit tests
         run: dotnet test tests/MERZY.UnitTests/MERZY.UnitTests.csproj -c Release --no-build --verbosity normal
 
+  sqlserver-integration:
+    name: SQL Server persistence integration tests
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: Y
+          MSSQL_SA_PASSWORD: "TestOnly_Strong_Passw0rd!2026"
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'TestOnly_Strong_Passw0rd!2026' -C -Q 'SELECT 1' || exit 1"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 20
+          --health-start-period 20s
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - name: Run SQL Server persistence integration tests
+        working-directory: api-server
+        env:
+          MERZY_TEST_SQLSERVER: "Server=localhost,1433;User Id=sa;Password=TestOnly_Strong_Passw0rd!2026;TrustServerCertificate=True;Encrypt=False;Initial Catalog=master"
+        run: dotnet test tests/MERZY.IntegrationTests/MERZY.IntegrationTests.csproj -c Release --verbosity normal
+
   smoke:
     name: Live smoke test (health endpoints)
     needs: build-and-test
