@@ -210,7 +210,7 @@ Strategic roadmap for MERZY Coffee & Bakery platform development.
 
 ### Infrastructure
 - **Hosting**: Cloud provider (AWS/GCP/Azure)
-- **Database**: PostgreSQL
+- **Database**: SQL Server (EF Core)
 - **Storage**: Image CDN
 - **Monitoring**: APM tool
 
