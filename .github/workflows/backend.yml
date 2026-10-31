@@ -9,8 +9,8 @@ on:
     paths: [ 'api-server/**', '.github/workflows/backend.yml' ]
 
 jobs:
-  ci:
-    name: Lint-level checks & smoke test
+  build-and-test:
+    name: Build & unit tests (.NET 8)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -18,25 +18,65 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Use Node.js 22.x
-        uses: actions/setup-node@v4
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
         with:
-          node-version: '22.x'
-          cache: 'npm'
-          cache-dependency-path: api-server/package-lock.json
+          dotnet-version: '8.0.x'
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('api-server/**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
 
-      - name: Syntax check
-        run: npm run check
+      - name: Restore
+        run: dotnet restore MERZY.Backend.sln
 
-      - name: Smoke test (boot server + health endpoint)
+      - name: Build (Release)
+        run: dotnet build MERZY.Backend.sln -c Release --no-restore
+
+      - name: Unit tests
+        run: dotnet test tests/MERZY.UnitTests/MERZY.UnitTests.csproj -c Release --no-build --verbosity normal
+
+  smoke:
+    name: Live smoke test (health endpoints)
+    needs: build-and-test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: api-server
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ runner.os }}-${{ hashFiles('api-server/**/*.csproj') }}
+          restore-keys: nuget-${{ runner.os }}-
+
+      - name: Boot API (SQL Server intentionally absent — migration must not block)
         run: |
-          node src/index.js &
+          dotnet run --project src/MERZY.Api --no-launch-profile --urls http://localhost:4000 &
           SERVER_PID=$!
-          sleep 2
+          echo "waiting for api..."
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:4000/healthz > /dev/null; then break; fi
+            sleep 1
+          done
+
+          echo "=== /healthz ==="
+          curl -sf http://localhost:4000/healthz
+
+          echo "=== /api/health ==="
           curl -sf http://localhost:4000/api/health > health.json
           cat health.json
           grep -q '"ok":true' health.json
+
           kill $SERVER_PID

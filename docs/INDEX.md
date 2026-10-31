@@ -19,6 +19,7 @@ repository root (standard project files) or here in `docs/`.
 | File | Purpose |
 |---|---|
 | [`INSTALLATION.md`](./INSTALLATION.md) | Full setup: Node, deps, environment, image cache |
+| [`BACKEND.md`](./BACKEND.md) | ASP.NET Core 8 backend — Clean Architecture, migrations, production |
 | [`ARCHITECTURE.md`](./ARCHITECTURE.md) | App layers, models, services, components |
 | [`DESIGN_SYSTEM.md`](./DESIGN_SYSTEM.md) | Color tokens, typography, Tailwind ramp |
 | [`DEPLOYMENT.md`](./DEPLOYMENT.md) | Production builds and deployment (Vercel, Firebase, AWS) |

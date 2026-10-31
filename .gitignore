@@ -17,3 +17,14 @@ npm-debug.log*
 # OS / editor
 .DS_Store
 Thumbs.db
+
+# .NET build outputs
+bin/
+obj/
+
+# IDE
+.vs/
+
+# VS user-local publish data (credentials)
+*.user
+*.pubxml.user
