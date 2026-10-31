@@ -2,6 +2,7 @@ using MERZY.Api.Controllers;
 using MERZY.Application.DTOs;
 using MERZY.Application.Services;
 using MERZY.Domain.Enums;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Xunit;
 
