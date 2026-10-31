@@ -1,525 +1,65 @@
 # Deployment Guide
 
-Instructions for deploying MERZY to production environments.
+## Current delivery model
 
-## Table of Contents
+The repository has an Angular 18 frontend in `merzy-coffee/` and an ASP.NET Core 8 API in `api-server/`.
 
-1. [Pre-Deployment Checklist](#pre-deployment-checklist)
-2. [Frontend Deployment](#frontend-deployment)
-3. [Backend Deployment](#backend-deployment)
-4. [Database Setup](#database-setup)
-5. [Environment Variables](#environment-variables)
-6. [SSL/TLS Configuration](#ssltls-configuration)
-7. [Monitoring & Logging](#monitoring--logging)
-8. [Rollback Procedures](#rollback-procedures)
-9. [Post-Deployment](#post-deployment)
+The GitHub Actions workflow `.github/workflows/deploy.yml` builds the frontend, uploads a frontend artifact, publishes the API, uploads the .NET publish artifact, and pushes a container image to GitHub Container Registry (GHCR). **It does not itself deploy the frontend to Vercel or the API to runasp.net/IIS.** Do not describe a successful workflow run as a live production deployment.
 
-## Pre-Deployment Checklist
+## Required secrets and configuration
 
-### Code Quality
-- [ ] All tests passing locally
-- [ ] No console errors or warnings
-- [ ] Code linting passes
-- [ ] TypeScript strict mode enabled
-- [ ] No hardcoded secrets or credentials
+Never commit database passwords, API keys, or publish credentials. The database credential previously present in tracked configuration must be rotated with the database provider; deleting it from the current files does not invalidate it or erase historical commits.
 
-### Performance
-- [ ] Frontend bundle < 500KB (gzipped)
-- [ ] API response time < 200ms
-- [ ] Database queries optimized
-- [ ] Images optimized and cached
+Configure these values in the hosting platform's secret/environment settings:
 
-### Security
-- [ ] Secrets removed from repository
-- [ ] Environment variables configured
-- [ ] CORS properly configured
-- [ ] Rate limiting enabled
-- [ ] Input validation implemented
-- [ ] SQL injection prevention in place
+| Setting | Purpose |
+|---|---|
+| `ConnectionStrings__DefaultConnection` | SQL Server connection string for the API |
+| `MERZY_CORS_ORIGINS` | Comma-separated exact frontend origins allowed by API CORS |
 
-### Documentation
-- [ ] README.md up to date
-- [ ] CHANGELOG.md updated
-- [ ] Deployment notes documented
-- [ ] Troubleshooting guide current
+Do not print secrets in logs or include them in deployment issue comments. Ensure publish-profile user files remain ignored and untracked.
 
-### Infrastructure
-- [ ] Hosting account ready
-- [ ] Database provisioned
-- [ ] Domain registered
-- [ ] SSL certificate ready
-- [ ] Email service configured
+## Frontend — Vercel
 
-## Frontend Deployment
+The Angular application root is `merzy-coffee/`. For each Vercel project, verify the configured **Root Directory** and build settings independently; do not assume two Vercel projects share the same root or output configuration.
 
-### Build for Production
+Suggested project settings when the project root is `merzy-coffee`:
 
-```bash
-cd merzy-coffee
-npm run build
-```
+- Framework preset: Angular (or the equivalent configured build)
+- Install command: `npm ci`
+- Build command: `npm run build -- --configuration production`
+- Angular browser output: `dist/merzy/browser` (verify against the actual build output)
 
-This creates optimized build in `dist/merzy/`
+If a project root is configured as the repository root instead, its install/build/output paths must be adjusted accordingly. Avoid a root-level `vercel.json` that blindly runs `cd merzy-coffee` when the Vercel project's Root Directory already points at that folder.
 
-### Build Output
-```
-dist/merzy/
-├── index.html
-├── styles.css
-├── main.js
-├── polyfills.js
-└── assets/
-    ├── images/
-    └── fonts/
-```
+For a failed deployment, capture the first build error from the Vercel deployment logs before changing paths. A GitHub build passing does not establish that Vercel deployed successfully.
 
-### Deploy to Firebase Hosting
+## Backend — ASP.NET Core 8
 
-```bash
-# Install Firebase CLI
-npm install -g firebase-tools
-
-# Login to Firebase
-firebase login
-
-# Initialize project (if first time)
-firebase init hosting
-
-# Deploy
-firebase deploy --only hosting
-```
-
-### Deploy to Vercel
-
-```bash
-# Install Vercel CLI
-npm install -g vercel
-
-# Build
-npm run build
-
-# Deploy
-cd merzy-coffee
-vercel --prod
-```
-
-### Deploy to AWS S3 + CloudFront
-
-```bash
-# Build
-npm run build
-
-# Sync to S3
-aws s3 sync dist/merzy/ s3://your-bucket-name --delete
-
-# Invalidate CloudFront
-aws cloudfront create-invalidation \
-  --distribution-id YOUR_DISTRIBUTION_ID \
-  --paths "/*"
-```
-
-### Deploy to Docker
-
-Create `Dockerfile`:
-
-```dockerfile
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-RUN npm run build
-
-FROM node:18-alpine
-WORKDIR /app
-RUN npm install -g serve
-COPY --from=builder /app/dist/merzy ./public
-EXPOSE 3000
-CMD ["serve", "-s", "public", "-l", "3000"]
-```
-
-Build and deploy:
-```bash
-docker build -t merzy-frontend .
-docker tag merzy-frontend:latest your-registry/merzy-frontend:1.0.0
-docker push your-registry/merzy-frontend:1.0.0
-```
-
-## Backend Deployment
-
-### Build for Production
+Build and test from the repository root:
 
 ```bash
 cd api-server
-npm ci
-npm run build
+dotnet restore MERZY.Backend.sln
+dotnet build MERZY.Backend.sln -c Release
+dotnet test tests/MERZY.UnitTests/MERZY.UnitTests.csproj -c Release
+dotnet publish src/MERZY.Api/MERZY.Api.csproj -c Release -o ./publish
 ```
 
-### Environment Setup
+The release workflow uploads a `api-publish-{sha}` artifact and pushes a container image to GHCR. These are deployable artifacts, not evidence that the hosting provider is running them.
 
-Create `.env.production`:
-```env
-NODE_ENV=production
-PORT=4000
-DATABASE_URL=postgresql://user:pass@db-host:5432/merzy
-JWT_SECRET=your-secret-key-here
-CORS_ORIGIN=https://merzy.coffee
-LOG_LEVEL=info
-```
+Set `ConnectionStrings__DefaultConnection` and `MERZY_CORS_ORIGINS` in the target host. Use HTTPS and a least-privilege database account. Run database migrations as a controlled release step; automatic startup migration should be reviewed against the target hosting and rollback strategy.
 
-### Deploy to Heroku
+## Post-deployment verification
 
-```bash
-# Create Heroku app
-heroku create merzy-api
+After deploying through the hosting provider, verify each route against the actual deployed host:
 
-# Set environment variables
-heroku config:set NODE_ENV=production
-heroku config:set DATABASE_URL=postgresql://...
+1. `GET /healthz` returns success.
+2. `GET /api/health` returns the expected health payload.
+3. `GET /swagger` loads if Swagger is intentionally enabled for that environment.
+4. `GET /api/menu` returns menu data when SQL Server is available.
+5. Order creation rejects malformed/unknown items and calculates totals on the server.
+6. `PATCH /api/orders/{id}/status` returns HTTP 501 until staff authentication/authorization is implemented.
+7. The frontend root and deep links load successfully, and browser console/network logs contain no failed API calls or CORS errors.
 
-# Deploy
-git push heroku main
-```
-
-### Deploy to Railway
-
-```bash
-# Install Railway CLI
-npm install -g @railway/cli
-
-# Login
-railway login
-
-# Deploy
-railway link
-railway up
-```
-
-### Deploy to Docker
-
-Create `Dockerfile`:
-
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm ci
-COPY . .
-RUN npm run build
-EXPOSE 4000
-ENV NODE_ENV=production
-CMD ["npm", "start"]
-```
-
-Build and deploy:
-```bash
-docker build -t merzy-api .
-docker tag merzy-api:latest your-registry/merzy-api:1.0.0
-docker push your-registry/merzy-api:1.0.0
-```
-
-### Deploy to AWS EC2
-
-```bash
-# SSH to instance
-ssh -i key.pem ec2-user@your-instance-ip
-
-# Clone repository
-git clone https://github.com/food-drink-solution/MERZY-Coffe-F.git
-cd MERZY-Coffe-F/api-server
-
-# Install dependencies
-npm ci
-
-# Create environment file
-nano .env.production
-
-# Install PM2 for process management
-npm install -g pm2
-
-# Start application
-pm2 start npm --name "merzy-api" -- start
-
-# Save PM2 configuration
-pm2 save
-
-# Enable startup
-pm2 startup
-```
-
-## Database Setup
-
-### PostgreSQL Initialization
-
-```bash
-# Connect to PostgreSQL
-psql -U postgres
-
-# Create database
-CREATE DATABASE merzy_production;
-
-# Create user
-CREATE USER merzy_user WITH PASSWORD 'strong-password';
-
-# Grant privileges
-GRANT ALL PRIVILEGES ON DATABASE merzy_production TO merzy_user;
-
-# Connect to database
-\c merzy_production
-
-# Run migrations
-psql -U merzy_user -d merzy_production -f migrations.sql
-```
-
-### Database Backups
-
-#### Automatic Daily Backups
-```bash
-# Create backup script
-nano backup-db.sh
-
-#!/bin/bash
-BACKUP_DIR="/backups/db"
-DATE=$(date +%Y%m%d_%H%M%S)
-pg_dump merzy_production | gzip > $BACKUP_DIR/backup_$DATE.sql.gz
-
-# Schedule with cron
-0 2 * * * /scripts/backup-db.sh
-```
-
-#### Restore from Backup
-```bash
-# Decompress
-gunzip backup_20261031_020000.sql.gz
-
-# Restore
-psql merzy_production < backup_20261031_020000.sql
-```
-
-## Environment Variables
-
-### Frontend (.env)
-```env
-ANGULAR_APP_API_URL=https://api.merzy.coffee
-ANGULAR_APP_VERSION=1.0.0
-```
-
-### Backend (.env.production)
-```env
-NODE_ENV=production
-PORT=4000
-DATABASE_URL=postgresql://user:pass@localhost:5432/merzy
-JWT_SECRET=your-super-secret-key
-JWT_EXPIRY=24h
-CORS_ORIGIN=https://merzy.coffee
-LOG_LEVEL=info
-REDIS_URL=redis://localhost:6379
-```
-
-### Never Commit
-- Database passwords
-- API keys
-- JWT secrets
-- Third-party credentials
-
-## SSL/TLS Configuration
-
-### Using Let's Encrypt
-
-```bash
-# Install Certbot
-sudo apt-get install certbot python3-certbot-nginx
-
-# Get certificate
-sudo certbot certonly --standalone -d merzy.coffee -d api.merzy.coffee
-
-# Auto-renewal (cron)
-0 0 1 * * certbot renew --quiet
-```
-
-### Nginx Configuration
-
-```nginx
-server {
-    listen 443 ssl http2;
-    server_name merzy.coffee;
-
-    ssl_certificate /etc/letsencrypt/live/merzy.coffee/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/merzy.coffee/privkey.pem;
-
-    # Security headers
-    add_header Strict-Transport-Security "max-age=31536000" always;
-    add_header X-Content-Type-Options "nosniff" always;
-    add_header X-Frame-Options "SAMEORIGIN" always;
-
-    # Frontend
-    location / {
-        proxy_pass http://frontend:3000;
-    }
-
-    # API
-    location /api/ {
-        proxy_pass http://backend:4000;
-    }
-}
-
-# Redirect HTTP to HTTPS
-server {
-    listen 80;
-    server_name merzy.coffee;
-    return 301 https://$server_name$request_uri;
-}
-```
-
-## Monitoring & Logging
-
-### Application Monitoring
-
-```bash
-# PM2 Monitoring
-pm2 monit
-
-# View logs
-pm2 logs merzy-api
-
-# Save logs
-pm2 save
-```
-
-### Centralized Logging (ELK Stack)
-
-**Send logs to Elastic:**
-```javascript
-const winston = require('winston');
-
-const logger = winston.createLogger({
-  transports: [
-    new winston.transports.Elasticsearch({
-      clientOpts: { node: 'https://elasticsearch:9200' },
-      index: 'merzy-logs'
-    })
-  ]
-});
-```
-
-### Performance Monitoring
-
-```bash
-# New Relic
-npm install newrelic
-
-# Add to server startup
-node -r newrelic api-server/src/index.js
-```
-
-### Uptime Monitoring
-
-Use service like:
-- Uptime Robot
-- Better Stack
-- Pingdom
-- Datadog
-
-## Rollback Procedures
-
-### Quick Rollback to Previous Version
-
-```bash
-# View recent versions
-git log --oneline -10
-
-# Rollback to previous commit
-git revert <commit-hash>
-git push
-
-# Redeploy
-npm run deploy
-```
-
-### Database Rollback
-
-```bash
-# List backups
-ls -lh /backups/db/
-
-# Restore from backup
-psql merzy_production < backup_20261030_020000.sql
-
-# Verify data
-psql -c "SELECT COUNT(*) FROM orders;"
-```
-
-### Docker Rollback
-
-```bash
-# List available images
-docker images merzy-api
-
-# Run previous version
-docker run -d merzy-api:1.0.0
-```
-
-## Post-Deployment
-
-### Verification
-
-- [ ] Frontend loads without errors
-- [ ] API responds to requests
-- [ ] Database connections working
-- [ ] Images loading correctly
-- [ ] Form submissions working
-- [ ] Mobile responsive
-- [ ] SSL certificate valid
-- [ ] Analytics tracking
-- [ ] Email notifications working
-
-### Testing
-
-```bash
-# Smoke tests
-npm run test:e2e:production
-
-# Load testing
-npm run test:load
-
-# Security scan
-npm run test:security
-```
-
-### Announce Deployment
-
-- Update status page
-- Notify team members
-- Post in relevant channels
-- Email users if needed
-- Monitor for issues
-
-## Common Issues
-
-### Issue: Frontend shows 404
-**Solution**: Check build output, verify deployment path in nginx/server config
-
-### Issue: API timeouts
-**Solution**: Check database connection, verify network settings, scale server
-
-### Issue: Images not loading
-**Solution**: Check image paths, verify S3 bucket permissions, check CDN config
-
-### Issue: High memory usage
-**Solution**: Implement pagination, add caching, optimize queries
-
-### Issue: Slow response times
-**Solution**: Add database indexes, implement caching, use CDN
-
-## Support & Documentation
-
-- [README.md](./README.md) - Project overview
-- [api-server/README.md](./api-server/README.md) - Backend documentation
-- [ROADMAP.md](./ROADMAP.md) - Future plans
-- [CHANGELOG.md](./CHANGELOG.md) - Release notes
-
----
-
-**Last Updated**: October 31, 2026  
-**Version**: 1.0.0  
-**Maintained by**: MERZY DevOps Team
+Record the deployment URL, commit SHA, test results, and sanitized HTTP status evidence in the release PR. Never paste credentials, access tokens, or full connection strings into evidence.
