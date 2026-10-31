@@ -1,7 +1,12 @@
 {
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "installCommand": "cd merzy-coffee && npm ci",
-  "buildCommand": "cd merzy-coffee && npx ng build --configuration production",
-  "outputDirectory": "merzy-coffee/dist/merzy/browser",
-  "framework": null
+  "installCommand": "cd frontend/MERZY-Coffe && npm ci",
+  "buildCommand": "cd frontend/MERZY-Coffe && npx ng build --configuration production",
+  "outputDirectory": "frontend/MERZY-Coffe/dist/merzy/browser",
+  "framework": null,
+  "rewrites": [
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
 }
