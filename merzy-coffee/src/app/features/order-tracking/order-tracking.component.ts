@@ -29,11 +29,30 @@ export class OrderTrackingComponent implements OnInit, OnDestroy {
   order: Order | null = null;
   steps = [{ status: 'received' as OrderStatus, label: 'Received' }, { status: 'preparing' as OrderStatus, label: 'Preparing' }, { status: 'ready' as OrderStatus, label: 'Ready' }];
   private sub = new Subscription();
+  private refreshTimer?: ReturnType<typeof setInterval>;
 
   constructor(private orderService: OrderService, private cdr: ChangeDetectorRef) {}
 
-  ngOnInit(): void { this.sub.add(this.orderService.currentOrder.subscribe(order => { this.order = order; this.cdr.markForCheck(); })); }
-  ngOnDestroy(): void { this.sub.unsubscribe(); }
+  ngOnInit(): void {
+    this.sub.add(this.orderService.currentOrder.subscribe(order => {
+      this.order = order;
+      if (this.refreshTimer) clearInterval(this.refreshTimer);
+      this.refreshTimer = undefined;
+      if (order?.serverId) {
+        this.refreshTimer = setInterval(() => {
+          this.sub.add(this.orderService.refreshOrder(order.serverId!).subscribe({
+            next: refreshed => { this.order = refreshed; this.cdr.markForCheck(); },
+            error: () => { /* Keep the last server-confirmed state visible during transient failures. */ },
+          }));
+        }, 10000);
+      }
+      this.cdr.markForCheck();
+    }));
+  }
+  ngOnDestroy(): void {
+    if (this.refreshTimer) clearInterval(this.refreshTimer);
+    this.sub.unsubscribe();
+  }
 
   @HostListener('document:keydown.escape')
   handleEscape(): void { if (this.order) this.close(); }
