@@ -10,8 +10,8 @@ Please be respectful and professional in all interactions. We're building a welc
 
 ### Prerequisites
 
-- Node.js 18+ 
-- npm or yarn
+- Node.js 22.x and npm (frontend)
+- .NET 8 SDK (API)
 - Git
 - Windows: PowerShell (use `npm.cmd`/`npx.cmd` due to execution policy)
 
@@ -33,8 +33,8 @@ Please be respectful and professional in all interactions. We're building a welc
 3. **Set up API server** (separate terminal)
    ```bash
    cd api-server
-   npm install
-   npm run dev
+   dotnet restore MERZY.Backend.sln
+   dotnet run --project src/MERZY.Api
    ```
 
 ## Development Workflow
@@ -61,8 +61,8 @@ Branch naming conventions:
 
 2. **API changes**
    - Edit files in `api-server/src/`
-   - Follow Node.js/Express conventions
-   - Test endpoints locally
+   - Follow ASP.NET Core and Clean Architecture conventions
+   - Add/update xUnit tests and run `dotnet test tests/MERZY.UnitTests/MERZY.UnitTests.csproj -c Release`
    - Update documentation
 
 3. **Data/Scraper changes**
@@ -114,13 +114,14 @@ Then create a Pull Request on GitHub with:
 - Keep components focused and testable
 - Use proper types (avoid `any`)
 
-### Backend (Node.js)
+### Backend (ASP.NET Core 8)
 
-- Use ES6+ features
-- Follow Express conventions
-- Add proper error handling
-- Document API endpoints
-- Use consistent naming
+- Keep Domain independent of HTTP and persistence concerns
+- Put use cases and abstractions in Application
+- Keep EF Core/repository implementations in Infrastructure
+- Validate untrusted input and never trust client-supplied prices
+- Do not enable order-status mutation without staff authentication/authorization
+- Never commit connection strings or credentials
 
 ### Scripts (TypeScript)
 
@@ -143,7 +144,7 @@ ng test
 
 ```bash
 cd api-server
-npm test
+dotnet test tests/MERZY.UnitTests/MERZY.UnitTests.csproj -c Release
 ```
 
 ### Scraper Tests
