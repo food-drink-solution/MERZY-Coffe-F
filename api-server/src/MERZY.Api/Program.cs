@@ -13,8 +13,11 @@ var builder = WebApplication.CreateBuilder(args);
 // Keep local origins as development defaults; production hosts should set the
 // variable explicitly in the hosting environment.
 var configuredOrigins = builder.Configuration["MERZY_CORS_ORIGINS"];
-var allowedOrigins = string.IsNullOrWhiteSpace(configuredOrigins)
+var defaultOrigins = builder.Environment.IsDevelopment()
     ? new[] { "https://merzy-coffe.vercel.app", "http://localhost:4321", "https://localhost:4321" }
+    : new[] { "https://merzy-coffe.vercel.app" };
+var allowedOrigins = string.IsNullOrWhiteSpace(configuredOrigins)
+    ? defaultOrigins
     : configuredOrigins.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
 
 builder.Services.AddCors(options =>
