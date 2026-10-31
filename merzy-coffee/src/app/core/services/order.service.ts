@@ -57,6 +57,7 @@ export class OrderService {
   private toOrder(response: ApiOrder): Order {
     return {
       id: response.code || response.id,
+      serverId: response.id,
       items: response.items.map(item => ({
         id: item.itemId,
         name: item.itemName,
